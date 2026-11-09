@@ -28,9 +28,14 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { zstdDecompressSync } from "node:zlib";
 
+import { PRICING, priceSample, resolveModel } from "./pricing.js";
+
 export const name = "cost-meter";
 
-/** 官价目表（元 / 百万 tokens）——与 dsh-offpeak 保持一致。 */
+/**
+ * 旧版价目表（保留导出仅为向后兼容，内部已改用 pricing.js 的 PRICING）。
+ * @deprecated 请使用 ./pricing.js 的 PRICING / resolveModel / priceSample。
+ */
 export const PRICES = {
   flash: {
     label: "DeepSeek V4.1 Flash",
@@ -88,25 +93,26 @@ function isPeak(minutes, date) {
   return PEAK_WINDOWS.some((w) => minutes >= w.start && minutes < w.end);
 }
 
-/** 模型归类：flash / pro / unknown。 */
+/**
+ * 模型归类（已废弃，仅供旧调用方使用）。
+ * @deprecated 价目表已多厂商化，请用 pricing.js 的 resolveModel()。
+ */
 function kindOf(model) {
-  const m = String(model || "").toLowerCase();
-  if (m.length === 0) return "unknown";
-  if (/v4[-.]?pro|deepseek-pro|pro$/.test(m)) return "pro";
-  if (/flash/.test(m)) return "flash";
-  return "unknown";
+  const r = resolveModel(model);
+  if (r === null) return "unknown";
+  if (r.vendor.id === "deepseek") return r.model.id.includes("pro") ? "pro" : "flash";
+  return r.model.id;
 }
 
-/** 按采样计算花费（元）。cacheWrite 按「缓存未命中」输入价计（官方无单独写入价）。 */
+/**
+ * 按采样计算花费（已废弃，仅供旧调用方使用）。
+ * @deprecated 请用 pricing.js 的 priceSample()。
+ */
 function costOf(kind, peak, u) {
-  if (kind === "unknown") return 0;
-  const r = PRICES[kind][peak ? "peak" : "off"];
-  const miss = (u.uncachedInputTokens || 0) + (u.cacheWriteTokens || 0);
-  return (
-    (miss / 1e6) * r.input +
-    ((u.cacheReadTokens || 0) / 1e6) * r.cacheRead +
-    ((u.outputTokens || 0) / 1e6) * r.output
-  );
+  const r = kind === "flash" ? resolveModel("deepseek-v4.1-flash")
+    : kind === "pro" ? resolveModel("deepseek-v4-pro")
+    : null;
+  return priceSample(r, peak, u).amount;
 }
 
 //#region 官方 token 折叠原语（逐条复刻 @deepseek-ai/dsh-token-meter）
@@ -150,7 +156,14 @@ function usageOf(event) {
 }
 //#endregion
 
-/** 空的会话累计。 */
+/**
+ * 空的会话累计。
+ *
+ * 多币种说明：国内厂商用元、国外厂商用美元，两者**绝不相加**。
+ *   - cost / costPeak / costOff 仍是「主币种」金额，供 pill 直接显示；
+ *   - costByCurrency 是各币种的独立累计（{ CNY: {...}, USD: {...} }）；
+ *   - byModel 是同一会话内按模型分组的明细（同会话换模型也能分别看到）。
+ */
 function emptyEntry() {
   return {
     cost: 0, costPeak: 0, costOff: 0,
@@ -159,11 +172,49 @@ function emptyEntry() {
     samples: 0, unknownSamples: 0, lastAt: 0,
     model: "", provider: "", baselineSeq: 0,
     last: null, openTurn: false,
+    /** 主币种：本会话出现过的第一个已计价币种 */
+    currency: "",
+    /** 币种 → { cost, costPeak, costOff, tokens, samples } */
+    costByCurrency: {},
+    /** 归一化模型 id → 明细 */
+    byModel: {},
   };
+}
+
+/** 取/建某币种的累计槽。 */
+function currencySlot(entry, currency) {
+  if (entry.costByCurrency === undefined) entry.costByCurrency = {};
+  if (entry.costByCurrency[currency] === undefined) {
+    entry.costByCurrency[currency] = { cost: 0, costPeak: 0, costOff: 0, tokens: 0, samples: 0 };
+  }
+  return entry.costByCurrency[currency];
+}
+
+/** 取/建某模型的分组。 */
+function modelSlot(entry, key, resolved) {
+  if (entry.byModel === undefined) entry.byModel = {};
+  if (entry.byModel[key] === undefined) {
+    entry.byModel[key] = {
+      model: key,
+      label: resolved === null ? key : resolved.model.label,
+      vendor: resolved === null ? "" : resolved.vendor.label,
+      currency: resolved === null ? "" : resolved.vendor.currency,
+      cost: 0, tokens: 0, samples: 0,
+      priced: resolved !== null,
+    };
+  }
+  return entry.byModel[key];
 }
 
 /**
  * 折叠一个事件到会话状态（重建与实时共用同一实现）。
+ *
+ * 计价模型来源优先级：
+ *   1. event.data.message.source.model —— 样本自带的真实后端模型（最可靠，
+ *      实测 assistant/message 100% 携带，因此同会话换模型可精确分别计费）；
+ *   2. state.model —— 由 model/selection / request/context 维护的会话级模型，
+ *      仅在样本未携带时兜底（assistant/attempt 实测不带 source）。
+ *
  * @returns 是否有变化
  */
 function foldEvent(state, event) {
@@ -173,7 +224,7 @@ function foldEvent(state, event) {
   if (event.type === "turn/start") { state.openTurn = true; return true; }
   if (event.type === "turn/end") { state.openTurn = false; return true; }
 
-  // 模型跟踪
+  // 模型跟踪（会话级兜底）
   if (event.type === "model/selection" || event.type === "request/context") {
     const d = event.data || {};
     if (typeof d.model === "string" && d.model !== "") {
@@ -207,11 +258,28 @@ function foldEvent(state, event) {
   // 同一 (turn,step) 的相同样本视为重复，跳过（官方行为）
   if (prev !== undefined && bucketsEqual(prev.buckets, buckets)) return false;
 
-  const kind = kindOf(state.model);
+  // ---- 逐样本确定模型 ----
+  const src = event.data?.message?.source;
+  const sampleModel = typeof src?.model === "string" && src.model !== "" ? src.model : "";
+  // 模型名用于计价取真实后端名；显示偏好会话级选择名（更贴近用户认知）。
+  const modelForPrice = sampleModel !== "" ? sampleModel : state.model;
+  // provider 必须一起传：短代号（mmodel / kmodel_latest 等）在不同路由组下
+  // 指代不同模型，只有带上 provider 才能避免按错误单价计费。
+  const sampleProvider = typeof src?.provider === "string" && src.provider !== "" ? src.provider : state.provider;
+  const resolved = resolveModel(modelForPrice, sampleProvider);
+  const modelKey = resolved !== null
+    ? resolved.model.id
+    : (modelForPrice !== "" ? String(modelForPrice) : "(unknown)");
+
+  // 模型变化也计入"有变化"，让面板及时反映正在使用的模型。
+  if (sampleModel !== "" && sampleModel !== state.model) state.model = sampleModel;
+
   const at = typeof event.time === "number" && Number.isFinite(event.time) && event.time > 1e12 ? event.time : 0;
   const bj = at !== 0 ? beijingAt(at) : null;
   const peak = bj !== null ? isPeak(bj.minutes, bj.date) : false;
-  const cost = at !== 0 ? costOf(kind, peak, buckets) : 0;
+  const priced = priceSample(resolved, peak, buckets);
+  const cost = priced.amount;
+  const currency = priced.currency;
 
   // 官方累计（用于与官方面板逐位对齐）
   state.tokens = addReplacing(state.tokens, prev?.buckets, buckets);
@@ -225,6 +293,20 @@ function foldEvent(state, event) {
     state.cost -= pCost;
     if (prev.peak) { state.tokensPeak -= pTotal; state.costPeak -= pCost; }
     else { state.tokensOff -= pTotal; state.costOff -= pCost; }
+    // 币种槽与模型槽同步回滚，否则重试替换会让分组金额漂移。
+    if (prev.currency) {
+      const cs = currencySlot(state, prev.currency);
+      cs.cost -= pCost;
+      cs.tokens -= pTotal;
+      cs.samples -= 1;
+      if (prev.peak) cs.costPeak -= pCost; else cs.costOff -= pCost;
+    }
+    if (prev.modelKey) {
+      const ms = modelSlot(state, prev.modelKey, null);
+      ms.cost -= pCost;
+      ms.tokens -= pTotal;
+      ms.samples -= 1;
+    }
     state.samples -= 1;
     if (prev.unknown) state.unknownSamples -= 1;
   }
@@ -232,9 +314,28 @@ function foldEvent(state, event) {
   if (peak) { state.tokensPeak += tokenTotal; state.costPeak += cost; }
   else { state.tokensOff += tokenTotal; state.costOff += cost; }
   state.samples += 1;
-  if (kind === "unknown") state.unknownSamples += 1;
+  if (resolved === null) state.unknownSamples += 1;
 
-  state.last = { turn, step, buckets, cost, peak, tokenTotal, unknown: kind === "unknown" };
+  // 币种与模型分组累计
+  if (currency !== null) {
+    if (state.currency === "" || state.currency === undefined) state.currency = currency;
+    const cs = currencySlot(state, currency);
+    cs.cost += cost;
+    cs.tokens += tokenTotal;
+    cs.samples += 1;
+    if (peak) cs.costPeak += cost; else cs.costOff += cost;
+  }
+  const ms = modelSlot(state, modelKey, resolved);
+  ms.cost += cost;
+  ms.tokens += tokenTotal;
+  ms.samples += 1;
+
+  state.last = {
+    turn, step, buckets, cost, peak, tokenTotal,
+    unknown: resolved === null,
+    currency,
+    modelKey: modelKey,
+  };
   if (at !== 0 && at > state.lastAt) state.lastAt = at;
   return true;
 }
@@ -291,7 +392,7 @@ export function apply(ctx, config = {}) {
     return JSON.stringify({
       sessionId: id,
       entry: state.sessions[id] ?? emptyEntry(),
-      prices: PRICES,
+      pricing: PRICING,
       inPeak: isPeak(bj.minutes, bj.date),
       live: openTurns.get(id) === true,
       serverTime: Date.now(),
@@ -406,11 +507,14 @@ export function apply(ctx, config = {}) {
       if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405, { Allow: "GET, HEAD" }); res.end(); return; }
       const now = beijingAt(Date.now());
       json(res, 200, {
-        prices: PRICES,
+        pricing: PRICING,
         inPeak: isPeak(now.minutes, now.date),
         peakWindows: PEAK_WINDOWS.map((w) => ({ start: w.start, end: w.end })),
         sessions: state.sessions,
         serverTime: Date.now(),
+        /** 便于确认价目表版本与更新日期 */
+        pricingVersion: PRICING.version,
+        pricingUpdatedAt: PRICING.updatedAt,
       });
     });
 
@@ -424,11 +528,17 @@ export function apply(ctx, config = {}) {
       json(res, 200, {
         sessionId: id,
         entry: state.sessions[id] ?? emptyEntry(),
-        prices: PRICES,
+        pricing: PRICING,
         inPeak: isPeak(now.minutes, now.date),
         live: openTurns.get(id) === true,
         serverTime: Date.now(),
       });
+    });
+
+    /** 价目表只读接口：便于外部核对与调试。 */
+    route("/ds-cost/pricing", (req, res) => {
+      if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405, { Allow: "GET, HEAD" }); res.end(); return; }
+      json(res, 200, PRICING);
     });
 
     // SSE：会话进行中实时推送花费变化（无需轮询）。

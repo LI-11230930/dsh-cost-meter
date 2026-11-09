@@ -1,7 +1,7 @@
 {
   "name": "dsh-cost-meter",
-  "version": "0.1.0",
-  "description": "实时花费计量：在 DeepSeek Harness 对话框下方状态栏的「Token 用量」与「上下文」之间显示本次会话花费（元），按峰谷时段与模型分别计价。",
+  "version": "0.2.0",
+  "description": "实时花费计量：在 DeepSeek Harness 对话框下方状态栏的「Token 用量」与「上下文」之间显示本次会话花费，内置 12 家厂商价目表，逐样本按真实模型计费（支持同会话切换模型分别计价），国内计人民币、国外计美元。",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -17,6 +17,10 @@
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "test": "node test/pricing.test.mjs",
+    "check": "node --check src/index.js && node --check src/pricing.js && node --check client/client.js"
+  },
   "keywords": [
     "deepseek",
     "dsh",

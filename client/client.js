@@ -35,7 +35,7 @@ window.__ModuleLoader__.load({
       "now.off": "当前为空闲时段",
       "model": "模型",
       "samples": "采样",
-      "unknown": "该模型不在 V4.1 Flash / Pro 价目表内，未计价",
+      "unknown": "该模型不在价目表内，未计价（仅统计 token）",
       "reset": "重置本次会话",
       "reset.done": "已重置",
       "detail.peak": "高峰花费",
@@ -53,7 +53,11 @@ window.__ModuleLoader__.load({
       "rate": "均价",
       "error": "计量服务不可用",
       "perMillion": "元 / 百万 tokens",
+      "perMillionUsd": "美元 / 百万 tokens",
       "rates": "当前峰谷单价",
+      "byModel": "按模型",
+      "unpriced": "未计价",
+      "multiCurrency": "多币种",
     };
     const en = {
       "label": "Cost",
@@ -64,7 +68,7 @@ window.__ModuleLoader__.load({
       "now.off": "Currently off-peak",
       "model": "Model",
       "samples": "Samples",
-      "unknown": "Model not in the V4.1 Flash / Pro rate table; not billed",
+      "unknown": "Model not in the price table; counted as tokens only",
       "reset": "Reset this session",
       "reset.done": "Reset",
       "detail.peak": "Peak cost",
@@ -82,29 +86,23 @@ window.__ModuleLoader__.load({
       "rate": "Avg rate",
       "error": "Meter service unavailable",
       "perMillion": "CNY / 1M tokens",
+      "perMillionUsd": "USD / 1M tokens",
       "rates": "Current rates",
+      "byModel": "By model",
+      "unpriced": "Unpriced",
+      "multiCurrency": "Multi-currency",
     };
 
     /**
-     * 价目表兜底副本（与 host 端 PRICES 一致）。
+     * 币种符号。
      *
-     * 必要性：面板此前只依赖接口返回的 prices，但 /ds-cost/session 与 SSE 推送
-     * 的 payload 并不都带 prices，导致 rates 为 undefined，读取 rates.peak 抛
-     * TypeError —— 被错误边界捕获后面板立刻关闭，表现为"一点就消失"。
-     * 有这份兜底后，任何数据来源下面板都能正常显示单价。
+     * 注意：前端**不再维护价目表副本**。此前 client.js 里有一份 FALLBACK_PRICES，
+     * 与 host 的 PRICES 各写一遍，一旦两边不同步就会出现「面板显示的价格与实际计价不符」，
+     * 更早还因 rates 为 undefined 抛 TypeError 导致面板一点就消失。
+     * 现在价目表只由 host 通过 /ds-cost/session、/ds-cost/pricing 下发（字段 pricing）。
      */
-    const FALLBACK_PRICES = {
-      flash: {
-        label: "DeepSeek V4.1 Flash",
-        peak: { input: 2, output: 8, cacheRead: 0.04 },
-        off: { input: 1, output: 4, cacheRead: 0.02 },
-      },
-      pro: {
-        label: "DeepSeek V4 Pro",
-        peak: { input: 9, output: 27, cacheRead: 0.3 },
-        off: { input: 4.5, output: 13.5, cacheRead: 0.15 },
-      },
-    };
+    const SYMBOL = { CNY: "¥", USD: "$" };
+    const symbolOf = (c) => SYMBOL[c] ?? "¥";
 
     const STYLE_ID = "dsh-cost-meter-styles";
     const SHEET = [
@@ -178,6 +176,10 @@ window.__ModuleLoader__.load({
       if (n < 1) return n.toFixed(3);
       return n.toFixed(2);
     }
+    /** 带币种符号的金额。 */
+    function moneyC(v, currency) {
+      return symbolOf(currency) + " " + money(v);
+    }
     /** token 紧凑显示。 */
     function compactTokens(v) {
       const n = Number(v) || 0;
@@ -241,21 +243,34 @@ window.__ModuleLoader__.load({
       // 面板自身计算金额：此前误用了 CostPill 作用域里的 cost（未定义），
       // 点击展开时抛 ReferenceError，被槽位 ErrorBoundary 捕获后把整个 pill 卸载。
       const cost = Number(entry.cost) || 0;
-      // 接口可能不带 prices（SSE 推送 / session 路由），用兜底副本合并。
-      const prices = { ...FALLBACK_PRICES, ...(data?.prices ?? {}) };
-      const model = entry.model ?? "";
-      const lower = String(model).toLowerCase();
-      const kind = /pro/.test(lower) ? "pro" : /flash/.test(lower) ? "flash" : "";
-      const rates = kind !== "" && prices[kind] !== void 0 && prices[kind] !== null ? prices[kind] : null;
-      // 金额部分
-      const rows = [
-        [t("detail.peak"), "¥ " + money(entry.costPeak)],
-        [t("detail.off"), "¥ " + money(entry.costOff)],
-      ];
+      const currency = entry.currency || "CNY";
+
+      // ---- 多币种：各币种独立展示，绝不相加 ----
+      const byCurrency = entry.costByCurrency ?? {};
+      const currencies = Object.keys(byCurrency).filter((c) => (byCurrency[c]?.samples ?? 0) > 0);
+      const multi = currencies.length > 1;
+
+      // ---- 按模型分组 ----
+      const byModel = entry.byModel ?? {};
+      const modelRows = Object.keys(byModel)
+        .map((k) => ({ key: k, ...byModel[k] }))
+        .filter((r) => (r.samples ?? 0) > 0)
+        .sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0));
+
+      // 金额部分：单币种时沿用峰谷两栏；多币种时逐币种列出。
+      const rows = [];
+      if (multi) {
+        for (const c of currencies) {
+          const s = byCurrency[c] ?? {};
+          rows.push([c === "USD" ? "USD" : "CNY", moneyC(s.cost, c)]);
+        }
+      } else {
+        rows.push([t("detail.peak"), moneyC(entry.costPeak, currency)]);
+        rows.push([t("detail.off"), moneyC(entry.costOff, currency)]);
+      }
       if ((entry.unknownSamples ?? 0) > 0) rows.push([t("detail.unknown"), String(entry.unknownSamples)]);
-      // token 明细：与官方「Token 用量」面板**同一套数字、同一套口径**，
-      // 便于直接逐行对照（官方统计由 tokenMeter 的 addReplacing + retry 去重得出，
-      // 本插件复刻同一算法，因此这里与官方面板逐位一致）。
+
+      // token 明细：与官方「Token 用量」面板同一套数字、同一套口径。
       const tk = entry.tokens ?? {};
       const uIn = tk.uncachedInputTokens ?? 0;
       const cR = tk.cacheReadTokens ?? 0;
@@ -272,7 +287,18 @@ window.__ModuleLoader__.load({
       if (cW > 0) tokenRows.push([t("t.cacheWrite"), cW.toLocaleString("en-US") + " tok"]);
       tokenRows.push([t("t.output"), out.toLocaleString("en-US") + " tok"]);
       if (totalTok > 0) tokenRows.push([t("t.total"), totalTok.toLocaleString("en-US") + " tok"]);
-      if (totalTok > 0 && cost > 0) tokenRows.push([t("rate"), "¥ " + (cost / totalTok * 1e6).toFixed(3) + " / 1M"]);
+      if (totalTok > 0 && cost > 0) tokenRows.push([t("rate"), moneyC(cost / totalTok * 1e6, currency) + " / 1M"]);
+
+      const rowList = (items, prefix) => jsxRuntime.jsx("dl", {
+        className: "cmx-rows",
+        children: items.map(([k, v], i) =>
+          jsxRuntime.jsxs("div", { className: "cmx-row", children: [
+            react.createElement("dt", { key: "k" }, k),
+            react.createElement("dd", { key: "v" }, v),
+          ] }, prefix + i)
+        ),
+      });
+
       return jsxRuntime.jsxs("div", {
         className: "cmx-panel",
         role: "dialog",
@@ -280,43 +306,52 @@ window.__ModuleLoader__.load({
           jsxRuntime.jsxs("div", { className: "cmx-head", children: [
             react.createElement(CostIcon, { className: "cmx-ico" }),
             react.createElement("span", { children: t("title") }),
-            jsxRuntime.jsx("span", { className: "cmx-fig", children: "¥ " + money(entry.cost) }),
+            jsxRuntime.jsx("span", { className: "cmx-fig", children: moneyC(entry.cost, currency) }),
           ]}),
           jsxRuntime.jsx("div", { className: "cmx-sub", children: (data?.inPeak === true ? t("now.peak") : t("now.off")) + (data?.live === true ? " · " + t("live") : "") }),
           jsxRuntime.jsx("div", { className: "cmx-rule" }),
           // 每行包一层 div.cmx-row：CSS 的 .cmx-row 是 flex 左右分布，
           // 此前把 dt/dd 平铺成兄弟节点，导致标签与数值各占一行、面板被撑高一倍。
-          jsxRuntime.jsx("dl", { className: "cmx-rows", children: rows.map(([k, v], i) =>
-            jsxRuntime.jsxs("div", { className: "cmx-row", children: [
-              react.createElement("dt", { key: "k" }, k),
-              react.createElement("dd", { key: "v" }, v),
-            ] }, "r" + i)
-          ) }),
-          tokenRows.length > 0 && jsxRuntime.jsxs(react.Fragment, { children: [
+          rowList(rows, "r"),
+
+          // ---- 按模型分行（同会话换模型时各自独立显示）----
+          modelRows.length > 1 ? jsxRuntime.jsxs(react.Fragment, { children: [
             jsxRuntime.jsx("div", { className: "cmx-rule" }),
-            jsxRuntime.jsx("dl", { className: "cmx-rows", children: tokenRows.map(([k, v], i) =>
-              jsxRuntime.jsxs("div", { className: "cmx-row", children: [
-                react.createElement("dt", { key: "k" }, k),
-                react.createElement("dd", { key: "v" }, v),
-              ] }, "tk" + i)
-            ) }),
-          ]}),
-          rates !== null && rates.peak !== void 0 && rates.off !== void 0 && jsxRuntime.jsxs(react.Fragment, { children: [
+            jsxRuntime.jsx("div", { className: "cmx-sub", children: t("byModel") }),
+            jsxRuntime.jsx("dl", {
+              className: "cmx-rows",
+              children: modelRows.map((r, i) => jsxRuntime.jsxs("div", { className: "cmx-row", children: [
+                react.createElement("dt", { key: "k", title: r.key },
+                  (r.label || r.key) + (r.priced === false ? " · " + t("unpriced") : "")),
+                react.createElement("dd", { key: "v" },
+                  (r.priced === false ? "—" : moneyC(r.cost, r.currency)) + "  " + compactTokens(r.tokens)),
+              ] }, "m" + i)),
+            }),
+          ]}) : null,
+
+          tokenRows.length > 0 ? jsxRuntime.jsxs(react.Fragment, { children: [
             jsxRuntime.jsx("div", { className: "cmx-rule" }),
-            jsxRuntime.jsx("div", { className: "cmx-sub", children: t("rates") }),
-            jsxRuntime.jsx("dl", { className: "cmx-rows", children: [
-              jsxRuntime.jsxs("div", { className: "cmx-row", children: [
-                react.createElement("dt", { key: "rk" }, t("peak") + " ↑ / ↓ / out"),
-                react.createElement("dd", { key: "rv" }, rates.peak.input + " / " + rates.peak.cacheRead + " / " + rates.peak.output),
-              ] }, "pr"),
-              jsxRuntime.jsxs("div", { className: "cmx-row", children: [
-                react.createElement("dt", { key: "ok" }, t("off") + " ↑ / ↓ / out"),
-                react.createElement("dd", { key: "ov" }, rates.off.input + " / " + rates.off.cacheRead + " / " + rates.off.output),
-              ] }, "orf"),
-            ]}),
-            jsxRuntime.jsx("div", { className: "cmx-sub", children: t("perMillion") }),
-          ]}),
-          kind === "" && model !== "" ? jsxRuntime.jsx("div", { className: "cmx-sub", children: t("unknown") }) : null,
+            rowList(tokenRows, "tk"),
+          ]}) : null,
+
+          // ---- 单价：按模型展示其峰/谷价 ----
+          modelRows.filter((r) => r.priced !== false).slice(0, 4).map((r, i) => {
+            const rp = rateOf(r.key, data?.pricing);
+            if (rp === null) return null;
+            return jsxRuntime.jsxs(react.Fragment, { children: [
+              jsxRuntime.jsx("div", { className: "cmx-rule" }),
+              jsxRuntime.jsx("div", { className: "cmx-sub", children: t("rates") + " · " + (r.label || r.key) }),
+              rowList([
+                [t("peak") + " ↑ / ↓ / out", rp.peak.input + " / " + rp.peak.cacheRead + " / " + rp.peak.output],
+                [t("off") + " ↑ / ↓ / out", rp.off.input + " / " + rp.off.cacheRead + " / " + rp.off.output],
+              ], "p" + i),
+              jsxRuntime.jsx("div", { className: "cmx-sub", children: r.currency === "USD" ? t("perMillionUsd") : t("perMillion") }),
+            ]}, "pr" + i);
+          }),
+
+          modelRows.length === 1 && modelRows[0].priced === false
+            ? jsxRuntime.jsx("div", { className: "cmx-sub", children: t("unknown") }) : null,
+
           react.createElement("button", {
             type: "button",
             className: "cmx-reset",
@@ -326,8 +361,31 @@ window.__ModuleLoader__.load({
                 .catch(() => {});
             },
           }, t("reset")),
-        ],
+        ].filter(Boolean),
       });
+    }
+
+    /**
+     * 从 host 下发的 pricing 表里取出某模型的现行单价（用于面板展示）。
+     * @returns {{peak:object, off:object} | null}
+     */
+    function rateOf(modelKey, pricing) {
+      if (!pricing || !Array.isArray(pricing.vendors)) return null;
+      for (const v of pricing.vendors) {
+        for (const m of v.models ?? []) {
+          if (m.id !== modelKey) continue;
+          // 分档模型：展示第一档（标准档）价格
+          if (Array.isArray(m.tiers) && m.tiers.length > 0) {
+            const t0 = m.tiers[0];
+            return { peak: t0, off: t0 };
+          }
+          const peak = m.peak ?? m.off;
+          const off = m.off ?? m.peak;
+          if (!peak || !off) return null;
+          return { peak, off };
+        }
+      }
+      return null;
     }
 
     /**
