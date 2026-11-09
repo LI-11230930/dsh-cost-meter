@@ -1,19 +1,24 @@
 # dsh-cost-meter 补丁：向 profile 插入 cost-meter 行。
 #
-# Host half (src/index.js):
+# Host half (src/index.js + src/pricing.js):
 #   - 监听 session/event，对每个 assistant/message 的 usage 采样，
 #     用**该事件自身时间戳**判定高峰/空闲，按当时模型单价累加花费
 #     （跨时段可精确拆分，而非用总 token × 单一单价）；
-#   - 模型经 model/selection 与 request/context 跟踪；
+#   - 逐样本按 message.source.model 定价（样本自带真实后端模型），
+#     同一会话中途切换模型可分别准确计费；provider 一并参与匹配，
+#     因为 mmodel / kmodel_latest 等短代号在不同路由组下指代不同模型；
+#   - 价目表见 src/pricing.js（国内计人民币、国外计美元，各自独立累计）；
 #   - 峰谷窗口与法定节假日规则与 dsh-offpeak 同源；
-#   - 通过 webServer 暴露 /ds-cost/state、/ds-cost/session、/ds-cost/reset；
+#   - 通过 webServer 暴露 /ds-cost/state、/ds-cost/session、
+#     /ds-cost/stream、/ds-cost/pricing、/ds-cost/reset；
 #   - 累计结果持久化到 <DSH_HOME>/cost-meter.json（home 级，跨 profile 共享）。
 #
 # Browser half (client/client.js, dsh.client manifest):
 #   - 注册到官方 conversation.composer.dock slot，order 1；
 #     官方 token 用量 pill 是 order 0、上下文 meter 紧随其后，
 #     故本插件恰好显示在两者中间，与状态栏同排；
-#   - 显示 ¥ 金额，点击弹出明细（高峰/空闲花费、已计量 tokens、当前峰谷单价、重置）。
+#   - 按币种显示金额（¥ / $，多币种并列而不相加），点击弹出明细
+#     （按模型分项、高峰/空闲花费、已计量 tokens、缓存命中率、重置）。
 - insert:
     - id: cost-meter
       name: 'dsh-cost-meter'
