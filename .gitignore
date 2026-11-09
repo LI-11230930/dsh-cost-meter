@@ -1,0 +1,10 @@
+node_modules/
+*.log
+*.bak
+*.bak-*
+.DS_Store
+Thumbs.db
+cost-meter.json
+dist/
+.idea/
+.vscode/
