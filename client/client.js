@@ -270,6 +270,11 @@ window.__ModuleLoader__.load({
       }
       if ((entry.unknownSamples ?? 0) > 0) rows.push([t("detail.unknown"), String(entry.unknownSamples)]);
 
+      // 面板标题右侧的金额：多币种时同样逐币种列出，不显示混币之和。
+      const headLabel = multi
+        ? currencies.map((c) => moneyC(byCurrency[c]?.cost, c)).join(" + ")
+        : moneyC(entry.cost, currency);
+
       // token 明细：与官方「Token 用量」面板同一套数字、同一套口径。
       const tk = entry.tokens ?? {};
       const uIn = tk.uncachedInputTokens ?? 0;
@@ -287,7 +292,8 @@ window.__ModuleLoader__.load({
       if (cW > 0) tokenRows.push([t("t.cacheWrite"), cW.toLocaleString("en-US") + " tok"]);
       tokenRows.push([t("t.output"), out.toLocaleString("en-US") + " tok"]);
       if (totalTok > 0) tokenRows.push([t("t.total"), totalTok.toLocaleString("en-US") + " tok"]);
-      if (totalTok > 0 && cost > 0) tokenRows.push([t("rate"), moneyC(cost / totalTok * 1e6, currency) + " / 1M"]);
+      // 综合单价只在单币种时有意义；多币种下混算会得出无意义的数字。
+      if (totalTok > 0 && cost > 0 && !multi) tokenRows.push([t("rate"), moneyC(cost / totalTok * 1e6, currency) + " / 1M"]);
 
       const rowList = (items, prefix) => jsxRuntime.jsx("dl", {
         className: "cmx-rows",
@@ -306,7 +312,7 @@ window.__ModuleLoader__.load({
           jsxRuntime.jsxs("div", { className: "cmx-head", children: [
             react.createElement(CostIcon, { className: "cmx-ico" }),
             react.createElement("span", { children: t("title") }),
-            jsxRuntime.jsx("span", { className: "cmx-fig", children: moneyC(entry.cost, currency) }),
+            jsxRuntime.jsx("span", { className: "cmx-fig", children: headLabel }),
           ]}),
           jsxRuntime.jsx("div", { className: "cmx-sub", children: (data?.inPeak === true ? t("now.peak") : t("now.off")) + (data?.live === true ? " · " + t("live") : "") }),
           jsxRuntime.jsx("div", { className: "cmx-rule" }),
@@ -462,8 +468,27 @@ window.__ModuleLoader__.load({
       // turn/end→false），优先用它；useSession 仍在时作为回退。
       const serverLive = data?.live === true;
       const live = has && (serverLive || running === true);
-      const label = has ? "¥ " + money(cost) : t("loading");
-      const aria = t("title") + (has ? ": ¥ " + money(cost) : "") + (live ? " — " + t("live") : "");
+      // ---- 多币种：主金额按币种分别显示，绝不相加 ----
+      // entry.cost 是跨币种的算术和，只用于兼容旧字段，**不能**直接当金额显示，
+      // 否则「¥ + $」会被加在一起、再套上单一货币符号。
+      const curMap = entry?.costByCurrency ?? {};
+      const activeCurs = Object.keys(curMap).filter((c) => (curMap[c]?.samples ?? 0) > 0);
+      let label;
+      if (!has) {
+        label = t("loading");
+      } else if (activeCurs.length === 0) {
+        label = symbolOf(entry?.currency) + " 0.00";
+      } else if (activeCurs.length === 1) {
+        const c = activeCurs[0];
+        label = moneyC(curMap[c].cost, c);
+      } else {
+        // 多币种：按固定顺序（CNY 在前）逐币种列出
+        label = activeCurs
+          .sort((a, b) => (a === "CNY" ? -1 : b === "CNY" ? 1 : a.localeCompare(b)))
+          .map((c) => moneyC(curMap[c].cost, c))
+          .join(" + ");
+      }
+      const aria = t("title") + (has ? ": " + label : "") + (live ? " — " + t("live") : "");
 
       return jsxRuntime.jsxs("span", {
         ref: rootRef,
