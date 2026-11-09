@@ -11,7 +11,7 @@
  *
  * 运行：node test/pricing.test.mjs
  */
-import { PRICING, priceSample, resolveModel } from "../src/pricing.js";
+import { PRICING, priceSample, resolveModel, isIgnoredModel } from "../src/pricing.js";
 import { foldEvent, emptyEntry } from "../src/index.js";
 
 let pass = 0, fail = 0;
@@ -34,8 +34,26 @@ is(resolveModel("auto/deepseek-v4.1-flash")?.model.id, "deepseek-v4.1-flash", "�
 is(resolveModel("DeepSeek-V4.1-Flash")?.model.id, "deepseek-v4.1-flash", "大小写 + 连字符");
 is(resolveModel("deepseek-flash")?.model.id, "deepseek-v4.1-flash", "已退役别名归入 Flash");
 is(resolveModel("jet-hub-buddy/deepseek-v4.1-flash")?.model.id, "deepseek-v4.1-flash", "workbuddy 前缀");
-is(resolveModel("space-bunny"), null, "未知模型返回 null");
+is(resolveModel("space-bunny"), null, "space-bunny 不计价（MiniMax 灰测模型，已弃用）");
+is(resolveModel("lmodel", "qodercn"), null, "lmodel/QoDuck 不计价（免费渠道代号，无官方价）");
+is(resolveModel("auto/deepseek-v4.1-flash-sg", "magpie"), null, "新加坡变体不计价（保守不猜）");
 is(resolveModel(""), null, "空串返回 null");
+
+// ---------- 1b. 渠道代号 → 官方标准价（渠道免费/打折一律不管）----------
+console.log("[1b] 渠道代号按官方标准价计价");
+// hy4free 是 CodeBuddy 的免费渠道，但按用户要求按混元4官方标准价计。
+is(resolveModel("hy4free", "jet-hub-buddy")?.model.id, "hy4", "hy4free → 混元 Hy4");
+is(resolveModel("hy4free", "workbuddy")?.model.id, "hy4", "workbuddy 下 hy4free → Hy4");
+is(resolveModel("hy4std", "jet-hub-buddy")?.model.id, "hy4", "hy4std → Hy4");
+eq(resolveModel("hy4")?.model.off.input, 6, "Hy4 标准输入价 6（不是限时 5 折的 3）");
+eq(resolveModel("hy4")?.model.off.output, 18, "Hy4 标准输出价 18");
+eq(resolveModel("hy4")?.model.off.cacheRead, 0.3, "Hy4 缓存命中价 0.3");
+// step-5-preview 走 jmodel 代号
+is(resolveModel("step-5-preview", "buddy")?.model.id, "step-5-preview", "step-5-preview 直接命中");
+is(resolveModel("jmodel", "qodercn")?.model.id, "step-5-preview", "jmodel → Step 5 Preview");
+eq(resolveModel("step-5-preview")?.model.off.input, 7, "Step 5 Preview 输入价 7");
+eq(resolveModel("step-5-preview")?.model.off.output, 20, "Step 5 Preview 输出价 20");
+eq(resolveModel("step-5-preview")?.model.off.cacheRead, 0.7, "Step 5 Preview 缓存命中 0.7");
 
 // ---------- 2. 峰谷计价 ----------
 console.log("[2] 峰谷计价（DeepSeek Flash）");
@@ -157,6 +175,31 @@ is(scoped("gmodel", "auto"), "glm-5.3", "auto/gmodel = GLM-5.3");
 is(scoped("gfmodel", "qodercn"), "glm-5.3-flash", "qodercn/gfmodel = GLM-5.3-Flash");
 is(scoped("qmodel_38max", "qodercn"), "qwen3.8-max", "qodercn/qmodel_38max = Qwen3.8-Max");
 is(scoped("qfmodel", "auto"), "qwen3.8-flash", "auto/qfmodel = Qwen3.8-Flash");
+
+// ---------- 9. 缓存写入口径 ----------
+// cacheWrite 为 0  = 官方明确写入免费（如 MiMo 限时免费、Kimi K2 不支持写入）
+// cacheWrite 为 null = 官方未单列写入价 → 按「未命中输入」价计
+// 这两者不能混用，否则会把该收的钱算成 0，或把免费项多收钱。
+console.log("[9] 缓存写入口径");
+const writeCost = (id, prov) => {
+  const r = resolveModel(id, prov);
+  return priceSample(r, false, { uncachedInputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 1e6, outputTokens: 0 }).amount;
+};
+eq(writeCost("step-5-preview"), 7, "step-5-preview 写入按未命中输入价 7 计（官方明说包含首次写入）");
+eq(writeCost("hy4"), 6, "hy4 写入按未命中输入价 6 计");
+eq(writeCost("deepseek-v4.1-flash"), 1, "DeepSeek Flash 空闲写入按输入价 1 计");
+eq(writeCost("mimo-v2.6-pro"), 0, "MiMo 写入限时免费 → 0");
+eq(writeCost("kimi-k2.6"), 0, "Kimi K2.6 不支持缓存写入 → 0");
+eq(writeCost("qwen3.8-max"), 15, "通义 Max 有显式写入价 15");
+eq(writeCost("claude-opus-5-5"), 5, "Claude Opus 5.5 写入价 5");
+
+// ---------- 10. 完全忽略的模型 ----------
+console.log("[10] 完全忽略的模型");
+for (const x of ["space-bunny", "lmodel", "qodercn/lmodel", "deepseek-v4.1-flash-sg", "auto/deepseek-v4.1-flash-sg"]) {
+  is(isIgnoredModel(x), true, x + " 应被完全忽略");
+}
+is(isIgnoredModel("deepseek-v4.1-flash"), false, "正常模型不被忽略");
+is(isIgnoredModel("hy4free"), false, "hy4free 要计价，不被忽略");
 
 console.log("");
 console.log("通过 " + pass + " 项，失败 " + fail + " 项");

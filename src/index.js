@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { zstdDecompressSync } from "node:zlib";
 
-import { PRICING, priceSample, resolveModel } from "./pricing.js";
+import { PRICING, priceSample, resolveModel, isIgnoredModel } from "./pricing.js";
 
 export const name = "cost-meter";
 
@@ -263,6 +263,16 @@ function foldEvent(state, event) {
   const sampleModel = typeof src?.model === "string" && src.model !== "" ? src.model : "";
   // 模型名用于计价取真实后端名；显示偏好会话级选择名（更贴近用户认知）。
   const modelForPrice = sampleModel !== "" ? sampleModel : state.model;
+
+  // ---- 完全忽略的模型：不累计 token、不计入「未计价」----
+  // 如 space-bunny（MiniMax 灰测）、deepseek-v4.1-flash-sg（地区变体）、
+  // lmodel（QoDuck 免费代号）。这些不是真实在用模型，计进来只会是噪音。
+  // 必须在任何累计之前返回，否则 token 会先被加进去。
+  if (isIgnoredModel(modelForPrice) || isIgnoredModel(sampleModel)) {
+    if (sampleModel !== "" && sampleModel !== state.model) state.model = sampleModel;
+    return false;
+  }
+
   // provider 必须一起传：短代号（mmodel / kmodel_latest 等）在不同路由组下
   // 指代不同模型，只有带上 provider 才能避免按错误单价计费。
   const sampleProvider = typeof src?.provider === "string" && src.provider !== "" ? src.provider : state.provider;

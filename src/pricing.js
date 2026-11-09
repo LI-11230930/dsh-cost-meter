@@ -66,8 +66,8 @@ export const PRICING = {
           // dfmodel 是本机路由组里「DeepSeek-Flash」的代号，auto 与 qodercn 下含义一致。
           scopedAliases: ["qodercn/dfmodel", "jet-hub-qodercn/dfmodel", "auto/dfmodel"],
           label: "DeepSeek V4.1 Flash",
-          peak: { input: 2, output: 8, cacheRead: 0.04, cacheWrite: 0 },
-          off: { input: 1, output: 4, cacheRead: 0.02, cacheWrite: 0 },
+          peak: { input: 2, output: 8, cacheRead: 0.04, cacheWrite: null },
+          off: { input: 1, output: 4, cacheRead: 0.02, cacheWrite: null },
           note: "官方美元价峰时 $0.3/$1.2/$0.006，空闲减半。",
         },
         {
@@ -75,8 +75,8 @@ export const PRICING = {
           aliases: ["deepseek-pro", "pro"],
           scopedAliases: ["qodercn/dmodel", "jet-hub-qodercn/dmodel", "auto/dmodel"],
           label: "DeepSeek V4 Pro",
-          peak: { input: 9, output: 27, cacheRead: 0.3, cacheWrite: 0 },
-          off: { input: 4.5, output: 13.5, cacheRead: 0.15, cacheWrite: 0 },
+          peak: { input: 9, output: 27, cacheRead: 0.3, cacheWrite: null },
+          off: { input: 4.5, output: 13.5, cacheRead: 0.15, cacheWrite: null },
           note: "官方美元价峰时 $1.32/$3.96/$0.044，空闲减半。",
         },
       ],
@@ -94,41 +94,41 @@ export const PRICING = {
           aliases: ["glm-5.3"],
           scopedAliases: ["qodercn/gmodel", "jet-hub-qodercn/gmodel", "auto/gmodel"],
           label: "GLM-5.3",
-          peak: { input: 8, output: 28, cacheRead: 2, cacheWrite: 0 },
-          off: { input: 8, output: 28, cacheRead: 2, cacheWrite: 0 },
+          peak: { input: 8, output: 28, cacheRead: 2, cacheWrite: null },
+          off: { input: 8, output: 28, cacheRead: 2, cacheWrite: null },
         },
         {
           id: "glm-5.3-flash",
           aliases: ["glm-5.3-flash", "glm-5-3-flash"],
           scopedAliases: ["qodercn/gfmodel", "jet-hub-qodercn/gfmodel", "auto/gfmodel"],
           label: "GLM-5.3-Flash",
-          peak: { input: 0.8, output: 2.8, cacheRead: 0.23, cacheWrite: 0 },
-          off: { input: 0.8, output: 2.8, cacheRead: 0.23, cacheWrite: 0 },
+          peak: { input: 0.8, output: 2.8, cacheRead: 0.23, cacheWrite: null },
+          off: { input: 0.8, output: 2.8, cacheRead: 0.23, cacheWrite: null },
         },
         {
           id: "glm-5.3-flashx",
           aliases: ["glm-5.3-flashx", "glm-5.3-flashx-legal"],
           label: "GLM-5.3-FlashX",
-          peak: { input: 2, output: 7, cacheRead: 0.57, cacheWrite: 0 },
-          off: { input: 2, output: 7, cacheRead: 0.57, cacheWrite: 0 },
+          peak: { input: 2, output: 7, cacheRead: 0.57, cacheWrite: null },
+          off: { input: 2, output: 7, cacheRead: 0.57, cacheWrite: null },
           note: "GLM-5.3-Flash 的高速版。",
         },
         {
           id: "glm-5.2",
           aliases: ["glm-5.2"],
           label: "GLM-5.2",
-          peak: { input: 8, output: 28, cacheRead: 2, cacheWrite: 0 },
-          off: { input: 8, output: 28, cacheRead: 2, cacheWrite: 0 },
+          peak: { input: 8, output: 28, cacheRead: 2, cacheWrite: null },
+          off: { input: 8, output: 28, cacheRead: 2, cacheWrite: null },
         },
         {
           id: "glm-5.1",
           aliases: ["glm-5.1"],
           label: "GLM-5.1",
-          peak: { input: 6, output: 24, cacheRead: 1.3, cacheWrite: 0 },
-          off: { input: 6, output: 24, cacheRead: 1.3, cacheWrite: 0 },
+          peak: { input: 6, output: 24, cacheRead: 1.3, cacheWrite: null },
+          off: { input: 6, output: 24, cacheRead: 1.3, cacheWrite: null },
           tiers: [
-            { upTo: 32000, input: 6, output: 24, cacheRead: 1.3, cacheWrite: 0 },
-            { upTo: Infinity, input: 8, output: 28, cacheRead: 2, cacheWrite: 0 },
+            { upTo: 32000, input: 6, output: 24, cacheRead: 1.3, cacheWrite: null },
+            { upTo: Infinity, input: 8, output: 28, cacheRead: 2, cacheWrite: null },
           ],
           note: "输入长度 ≥32K 时按 8/28/2 计。",
         },
@@ -136,11 +136,11 @@ export const PRICING = {
           id: "glm-5",
           aliases: ["glm-5"],
           label: "GLM-5",
-          peak: { input: 4, output: 18, cacheRead: 1, cacheWrite: 0 },
-          off: { input: 4, output: 18, cacheRead: 1, cacheWrite: 0 },
+          peak: { input: 4, output: 18, cacheRead: 1, cacheWrite: null },
+          off: { input: 4, output: 18, cacheRead: 1, cacheWrite: null },
           tiers: [
-            { upTo: 32000, input: 4, output: 18, cacheRead: 1, cacheWrite: 0 },
-            { upTo: Infinity, input: 6, output: 22, cacheRead: 1.5, cacheWrite: 0 },
+            { upTo: 32000, input: 4, output: 18, cacheRead: 1, cacheWrite: null },
+            { upTo: Infinity, input: 6, output: 22, cacheRead: 1.5, cacheWrite: null },
           ],
           note: "输入长度 ≥32K 时按 6/22/1.5 计。",
         },
@@ -148,11 +148,11 @@ export const PRICING = {
           id: "glm-5-turbo",
           aliases: ["glm-5-turbo"],
           label: "GLM-5-Turbo",
-          peak: { input: 5, output: 22, cacheRead: 1.2, cacheWrite: 0 },
-          off: { input: 5, output: 22, cacheRead: 1.2, cacheWrite: 0 },
+          peak: { input: 5, output: 22, cacheRead: 1.2, cacheWrite: null },
+          off: { input: 5, output: 22, cacheRead: 1.2, cacheWrite: null },
           tiers: [
-            { upTo: 32000, input: 5, output: 22, cacheRead: 1.2, cacheWrite: 0 },
-            { upTo: Infinity, input: 7, output: 26, cacheRead: 1.8, cacheWrite: 0 },
+            { upTo: 32000, input: 5, output: 22, cacheRead: 1.2, cacheWrite: null },
+            { upTo: Infinity, input: 7, output: 26, cacheRead: 1.8, cacheWrite: null },
           ],
           note: "输入长度 ≥32K 时按 7/26/1.8 计。",
         },
@@ -160,8 +160,8 @@ export const PRICING = {
           id: "glm-4.7",
           aliases: ["glm-4.7"],
           label: "GLM-4.7",
-          peak: { input: 3, output: 14, cacheRead: 0.6, cacheWrite: 0 },
-          off: { input: 3, output: 14, cacheRead: 0.6, cacheWrite: 0 },
+          peak: { input: 3, output: 14, cacheRead: 0.6, cacheWrite: null },
+          off: { input: 3, output: 14, cacheRead: 0.6, cacheWrite: null },
           note: "取值档：输入 [0,32K)。输入 [32K,200K) 为 4/16/0.8。",
         },
       ],
@@ -253,19 +253,19 @@ export const PRICING = {
           // mmodel 在 auto 下是 MiniMax-M3，在 qodercn 下是 M3.1-Flash。
           scopedAliases: ["qodercn/mmodel", "jet-hub-qodercn/mmodel"],
           label: "MiniMax M3.1 Flash",
-          peak: { input: 1, output: 4, cacheRead: 0.1, cacheWrite: 0 },
-          off: { input: 1, output: 4, cacheRead: 0.1, cacheWrite: 0 },
+          peak: { input: 1, output: 4, cacheRead: 0.1, cacheWrite: null },
+          off: { input: 1, output: 4, cacheRead: 0.1, cacheWrite: null },
         },
         {
           id: "minimax-m3",
           aliases: ["minimax-m3"],
           scopedAliases: ["auto/mmodel"],
           label: "MiniMax M3",
-          peak: { input: 2.1, output: 8.4, cacheRead: 0.42, cacheWrite: 0 },
-          off: { input: 2.1, output: 8.4, cacheRead: 0.42, cacheWrite: 0 },
+          peak: { input: 2.1, output: 8.4, cacheRead: 0.42, cacheWrite: null },
+          off: { input: 2.1, output: 8.4, cacheRead: 0.42, cacheWrite: null },
           tiers: [
-            { upTo: 512000, input: 2.1, output: 8.4, cacheRead: 0.42, cacheWrite: 0 },
-            { upTo: Infinity, input: 4.2, output: 16.8, cacheRead: 0.84, cacheWrite: 0 },
+            { upTo: 512000, input: 2.1, output: 8.4, cacheRead: 0.42, cacheWrite: null },
+            { upTo: Infinity, input: 4.2, output: 16.8, cacheRead: 0.84, cacheWrite: null },
           ],
           note: ">512k 输入 tokens 单价翻倍（已含永久五折）。",
         },
@@ -342,29 +342,29 @@ export const PRICING = {
           id: "doubao-seed-2.1-pro",
           aliases: ["doubao-seed-2.1-pro"],
           label: "Doubao Seed 2.1 Pro",
-          peak: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: 0 },
-          off: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: 0 },
+          peak: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: null },
+          off: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: null },
         },
         {
           id: "doubao-seed-2.1-turbo",
           aliases: ["doubao-seed-2.1-turbo"],
           label: "Doubao Seed 2.1 Turbo",
-          peak: { input: 3, output: 15, cacheRead: 0.6, cacheWrite: 0 },
-          off: { input: 3, output: 15, cacheRead: 0.6, cacheWrite: 0 },
+          peak: { input: 3, output: 15, cacheRead: 0.6, cacheWrite: null },
+          off: { input: 3, output: 15, cacheRead: 0.6, cacheWrite: null },
         },
         {
           id: "doubao-seed-2.1-lite",
           aliases: ["doubao-seed-2.1-lite"],
           label: "Doubao Seed 2.1 Lite",
-          peak: { input: 0.8, output: 2.7, cacheRead: 0.16, cacheWrite: 0 },
-          off: { input: 0.8, output: 2.7, cacheRead: 0.16, cacheWrite: 0 },
+          peak: { input: 0.8, output: 2.7, cacheRead: 0.16, cacheWrite: null },
+          off: { input: 0.8, output: 2.7, cacheRead: 0.16, cacheWrite: null },
         },
         {
           id: "doubao-seed-evolving",
           aliases: ["doubao-seed-evolving"],
           label: "Doubao Seed Evolving",
-          peak: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: 0 },
-          off: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: 0 },
+          peak: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: null },
+          off: { input: 6, output: 30, cacheRead: 1.2, cacheWrite: null },
         },
       ],
     },
@@ -373,51 +373,86 @@ export const PRICING = {
       label: "腾讯混元",
       currency: "CNY",
       peakEnabled: false,
-      source: "https://cloud.tencent.com/document/product/1729/97731",
-      note: "后付费刊例价，无缓存读写计费项。混元正迁移至 TokenHub，此表为存量在售价。",
+      source: "https://cloud.tencent.com/document/product/1823/130055",
+      note:
+        "Hy4 及后续模型由「大模型服务平台 TokenHub」承载（旧平台 product/1729 已停止新增模型与新增购买），" +
+        "hy3 及以下为旧平台存量刊例价。无缓存写入单价。",
       models: [
+        {
+          id: "hy4",
+          // 本机代号：hy4free（auto/workbuddy/jet-hub-buddy）、hy4std（CodeBuddy 标准档）。
+          // 按用户要求，渠道是否免费/打折一律不管，统一按官方标准刊例价计。
+          aliases: ["hy4", "hunyuan-4", "hunyuan4"],
+          scopedAliases: [
+            "auto/hy4free", "workbuddy/hy4free", "jet-hub-buddy/hy4free",
+            "jet-hub-buddy/hy4std", "auto/hy4std", "workbuddy/hy4std",
+          ],
+          label: "混元 Hy4",
+          peak: { input: 6, output: 18, cacheRead: 0.3, cacheWrite: null },
+          off: { input: 6, output: 18, cacheRead: 0.3, cacheWrite: null },
+          note:
+            "混元4（官方 id hy4）。标准刊例价 6/18/缓存0.3，1M 上下文，无长度分档、无峰谷。" +
+            "官方另有「限时 5 折至 2026-12-31」促销（实付 3/9/0.15）与批量推理 5 折，" +
+            "按标准价口径不计入。",
+        },
+        {
+          id: "hy4-preview",
+          aliases: ["hy4-preview"],
+          label: "混元 Hy4 Preview",
+          peak: { input: 6, output: 18, cacheRead: 0.3, cacheWrite: null },
+          off: { input: 6, output: 18, cacheRead: 0.3, cacheWrite: null },
+          note: "与 hy4 正式版同价。",
+        },
+        {
+          id: "hy3",
+          aliases: ["hy3", "hunyuan-3"],
+          label: "混元 Hy3",
+          peak: { input: 1, output: 4, cacheRead: 0.25, cacheWrite: null },
+          off: { input: 1, output: 4, cacheRead: 0.25, cacheWrite: null },
+          note: "256K 上下文；批量推理 0.5/2/0.125。",
+        },
         {
           id: "hunyuan-a13b",
           aliases: ["hunyuan-a13b"],
           label: "混元 A13B",
-          peak: { input: 0.5, output: 2, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 0.5, output: 2, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 0.5, output: 2, cacheRead: 0, cacheWrite: null },
+          off: { input: 0.5, output: 2, cacheRead: 0, cacheWrite: null },
         },
         {
           id: "hunyuan-role-latest",
           aliases: ["hunyuan-role-latest"],
           label: "混元 Role",
-          peak: { input: 2.4, output: 9.6, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 2.4, output: 9.6, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 2.4, output: 9.6, cacheRead: 0, cacheWrite: null },
+          off: { input: 2.4, output: 9.6, cacheRead: 0, cacheWrite: null },
         },
         {
           id: "hunyuan-translation",
           aliases: ["hunyuan-translation"],
           label: "混元翻译",
-          peak: { input: 1.2, output: 3.6, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 1.2, output: 3.6, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 1.2, output: 3.6, cacheRead: 0, cacheWrite: null },
+          off: { input: 1.2, output: 3.6, cacheRead: 0, cacheWrite: null },
         },
         {
           id: "hunyuan-translation-lite",
           aliases: ["hunyuan-translation-lite"],
           label: "混元翻译 Lite",
-          peak: { input: 1, output: 3, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 1, output: 3, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 1, output: 3, cacheRead: 0, cacheWrite: null },
+          off: { input: 1, output: 3, cacheRead: 0, cacheWrite: null },
         },
         {
           id: "hunyuan-vision-1.5-instruct",
           aliases: ["hunyuan-vision-1.5-instruct", "hunyuan-turbos-vision", "hunyuan-t1-vision-20250916", "hunyuan-turbos-vision-video"],
           label: "混元视觉",
-          peak: { input: 3, output: 9, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 3, output: 9, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 3, output: 9, cacheRead: 0, cacheWrite: null },
+          off: { input: 3, output: 9, cacheRead: 0, cacheWrite: null },
           note: "含 Vision 1.5 Instruct / TurboS Vision / T1 Vision / Vision Video 同价档。",
         },
         {
           id: "hunyuan-embedding",
           aliases: ["hunyuan-embedding"],
           label: "混元 Embedding",
-          peak: { input: 0.7, output: 0.7, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 0.7, output: 0.7, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 0.7, output: 0.7, cacheRead: 0, cacheWrite: null },
+          off: { input: 0.7, output: 0.7, cacheRead: 0, cacheWrite: null },
           note: "向量模型，仅输入计费。",
         },
       ],
@@ -451,6 +486,60 @@ export const PRICING = {
           label: "MiMo V2.6 Pro UltraSpeed",
           peak: { input: 30, output: 60, cacheRead: 0.25, cacheWrite: 0 },
           off: { input: 30, output: 60, cacheRead: 0.25, cacheWrite: 0 },
+        },
+      ],
+    },
+    {
+      id: "stepfun",
+      label: "阶跃星辰",
+      currency: "CNY",
+      peakEnabled: false,
+      source: "https://platform.stepfun.com/docs/zh/guides/pricing/details",
+      note: "官方无 Batch 折扣、无峰谷价差、无长度分档。",
+      models: [
+        {
+          id: "step-5-preview",
+          // 本机代号：jmodel（Qoder 中国版路由组）。
+          aliases: ["step-5-preview"],
+          scopedAliases: ["qodercn/jmodel", "jet-hub-qodercn/jmodel", "auto/jmodel"],
+          label: "Step 5 Preview",
+          peak: { input: 7, output: 20, cacheRead: 0.7, cacheWrite: null },
+          off: { input: 7, output: 20, cacheRead: 0.7, cacheWrite: null },
+          note:
+            "1M 上下文，文本/图片/视频输入，最大输出 64k。官方明确「未命中输入（含首次写入缓存）" +
+            "按未命中单价计费」，故无独立 cacheWrite 单价。" +
+            "cacheRead 0.7 自北京时间 2026-10-14 00:30 由 0.35 上调；此前已用过按量付费 API 的老账户仍为 0.35。",
+        },
+        {
+          id: "step-3.7-flash",
+          aliases: ["step-3.7-flash"],
+          label: "Step 3.7 Flash",
+          peak: { input: 1.35, output: 8.1, cacheRead: 0.27, cacheWrite: null },
+          off: { input: 1.35, output: 8.1, cacheRead: 0.27, cacheWrite: null },
+          note: "256K 上下文，多模态推理。",
+        },
+        {
+          id: "step-3.5-flash",
+          aliases: ["step-3.5-flash"],
+          label: "Step 3.5 Flash",
+          peak: { input: 0.7, output: 2.1, cacheRead: 0.14, cacheWrite: null },
+          off: { input: 0.7, output: 2.1, cacheRead: 0.14, cacheWrite: null },
+        },
+        {
+          id: "step-3.5-flash-2603",
+          aliases: ["step-3.5-flash-2603"],
+          label: "Step 3.5 Flash 2603",
+          peak: { input: 0.7, output: 2.1, cacheRead: 0.14, cacheWrite: null },
+          off: { input: 0.7, output: 2.1, cacheRead: 0.14, cacheWrite: null },
+          note: "Agent 场景优化版，低推理模式。",
+        },
+        {
+          id: "step-1o-turbo-vision",
+          aliases: ["step-1o-turbo-vision"],
+          label: "Step-1o Turbo Vision",
+          peak: { input: 2.5, output: 8, cacheRead: 0.5, cacheWrite: null },
+          off: { input: 2.5, output: 8, cacheRead: 0.5, cacheWrite: null },
+          note: "32K 上下文，图像/视频理解。",
         },
       ],
     },
@@ -542,11 +631,11 @@ export const PRICING = {
           id: "gpt-5.5",
           aliases: ["gpt-5.5"],
           label: "GPT-5.5",
-          peak: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 0 },
-          off: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 0 },
+          peak: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: null },
+          off: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: null },
           tiers: [
-            { upTo: 272000, input: 5, output: 30, cacheRead: 0.5, cacheWrite: 0 },
-            { upTo: Infinity, input: 10, output: 45, cacheRead: 1, cacheWrite: 0 },
+            { upTo: 272000, input: 5, output: 30, cacheRead: 0.5, cacheWrite: null },
+            { upTo: Infinity, input: 10, output: 45, cacheRead: 1, cacheWrite: null },
           ],
           note: "官方未单列缓存写入价。",
         },
@@ -554,11 +643,11 @@ export const PRICING = {
           id: "gpt-5.5-pro",
           aliases: ["gpt-5.5-pro"],
           label: "GPT-5.5 Pro",
-          peak: { input: 30, output: 180, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 30, output: 180, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 30, output: 180, cacheRead: 0, cacheWrite: null },
+          off: { input: 30, output: 180, cacheRead: 0, cacheWrite: null },
           tiers: [
-            { upTo: 272000, input: 30, output: 180, cacheRead: 0, cacheWrite: 0 },
-            { upTo: Infinity, input: 60, output: 270, cacheRead: 0, cacheWrite: 0 },
+            { upTo: 272000, input: 30, output: 180, cacheRead: 0, cacheWrite: null },
+            { upTo: Infinity, input: 60, output: 270, cacheRead: 0, cacheWrite: null },
           ],
           note: "官方未列缓存价格，缓存读取按 0 计（实际可能不计费）。",
         },
@@ -566,30 +655,30 @@ export const PRICING = {
           id: "gpt-5.4",
           aliases: ["gpt-5.4"],
           label: "GPT-5.4",
-          peak: { input: 2.5, output: 15, cacheRead: 0.25, cacheWrite: 0 },
-          off: { input: 2.5, output: 15, cacheRead: 0.25, cacheWrite: 0 },
+          peak: { input: 2.5, output: 15, cacheRead: 0.25, cacheWrite: null },
+          off: { input: 2.5, output: 15, cacheRead: 0.25, cacheWrite: null },
         },
         {
           id: "gpt-5.4-pro",
           aliases: ["gpt-5.4-pro"],
           label: "GPT-5.4 Pro",
-          peak: { input: 30, output: 180, cacheRead: 0, cacheWrite: 0 },
-          off: { input: 30, output: 180, cacheRead: 0, cacheWrite: 0 },
+          peak: { input: 30, output: 180, cacheRead: 0, cacheWrite: null },
+          off: { input: 30, output: 180, cacheRead: 0, cacheWrite: null },
           note: "官方未列缓存价格。",
         },
         {
           id: "gpt-5.4-mini",
           aliases: ["gpt-5.4-mini"],
           label: "GPT-5.4 mini",
-          peak: { input: 0.75, output: 4.5, cacheRead: 0.075, cacheWrite: 0 },
-          off: { input: 0.75, output: 4.5, cacheRead: 0.075, cacheWrite: 0 },
+          peak: { input: 0.75, output: 4.5, cacheRead: 0.075, cacheWrite: null },
+          off: { input: 0.75, output: 4.5, cacheRead: 0.075, cacheWrite: null },
         },
         {
           id: "gpt-5.4-nano",
           aliases: ["gpt-5.4-nano"],
           label: "GPT-5.4 nano",
-          peak: { input: 0.2, output: 1.25, cacheRead: 0.02, cacheWrite: 0 },
-          off: { input: 0.2, output: 1.25, cacheRead: 0.02, cacheWrite: 0 },
+          peak: { input: 0.2, output: 1.25, cacheRead: 0.02, cacheWrite: null },
+          off: { input: 0.2, output: 1.25, cacheRead: 0.02, cacheWrite: null },
         },
       ],
     },
@@ -995,6 +1084,36 @@ export function knownModelIds() {
   return [...INDEX.global.keys(), ...INDEX.scoped.keys()].sort();
 }
 
+/**
+ * 完全忽略的模型（既不计价、也不计入「未计价」统计）。
+ *
+ * 收录标准：**已知不是真实在用模型**，计进去只会制造噪音。
+ * 每一项都必须写明为什么忽略，便于日后复核。
+ *
+ * 注意：只放"确实应该当作不存在"的；
+ * 真实在用但查不到官方价的模型，应保持「未计价」而不是放进这里——
+ * 那样会让没算到的 token 悄悄消失。
+ */
+const IGNORED = new Map([
+  // MiniMax 早期灰测模型，从未作为正式产品提供 API 价格，用户明确要求不计。
+  ["space-bunny", "MiniMax 灰测模型，无官方定价，不纳入统计"],
+  // DeepSeek 的地区部署变体（新加坡节点），价格未单列，用户明确要求不计。
+  ["deepseek-v4.1-flash-sg", "DeepSeek 新加坡部署变体，无独立官方定价，不纳入统计"],
+  // QoDuck：免费渠道代号，非独立模型。
+  ["lmodel", "QoDuck，免费渠道代号，非独立模型"],
+]);
+
+/**
+ * 该模型是否应被完全忽略（不累计 token、不计入未计价）。
+ * @param {string} model 原始模型名（可带 provider 前缀）
+ * @returns {boolean}
+ */
+export function isIgnoredModel(model) {
+  const short = normalize(stripProvider(model));
+  if (short === "") return false;
+  return IGNORED.has(short);
+}
+
 //#endregion
 
 //#region 计价
@@ -1029,9 +1148,14 @@ export function priceSample(resolved, peak, u) {
   }
   if (!rates) return { amount: 0, currency: null, priced: false };
 
-  // 缓存写入：官方若未单列写入价（cacheWrite 为 0 或缺失），
-  // 则按「缓存未命中」输入价计——与旧版行为一致，避免漏计。
-  const writeRate = rates.cacheWrite && rates.cacheWrite > 0 ? rates.cacheWrite : rates.input;
+  // 缓存写入的计价口径：
+  //   cacheWrite 为数字 → 按该价计（0 表示官方明确写入免费）
+  //   cacheWrite 为 null/缺失 → 官方未单列写入价，按「未命中输入」价计
+  //     （多数厂商的写入本就等同未命中输入，如阶跃星辰官方明说
+  //      「未命中的输入 Token（包括首次写入缓存的内容）按未命中单价计费」）
+  // 用 hasOwnProperty 区分「写了 0」与「没写」，不能都用 `||` 兜底。
+  const hasWriteRate = rates.cacheWrite !== null && rates.cacheWrite !== undefined;
+  const writeRate = hasWriteRate ? rates.cacheWrite : rates.input;
 
   const amount =
     (uncached / 1e6) * rates.input +
