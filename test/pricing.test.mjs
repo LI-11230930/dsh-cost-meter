@@ -201,6 +201,38 @@ for (const x of ["space-bunny", "lmodel", "qodercn/lmodel", "deepseek-v4.1-flash
 is(isIgnoredModel("deepseek-v4.1-flash"), false, "正常模型不被忽略");
 is(isIgnoredModel("hy4free"), false, "hy4free 要计价，不被忽略");
 
+// ---------- 11. Gemini 新模型（2026-11 官方定价页）----------
+console.log("[11] Gemini 4 Carbon 与 Decision 1");
+is(resolveModel("gemini-4-carbon")?.model.id, "gemini-4-carbon", "gemini-4-carbon 可识别");
+is(resolveModel("gemini-4carbon")?.model.id, "gemini-4-carbon", "无连字符写法也能识别");
+eq(resolveModel("gemini-4-carbon")?.model.off.input, 2, "Carbon 输入 Standard 价 2（非 Batch 1 / Priority 3.6）");
+eq(resolveModel("gemini-4-carbon")?.model.off.output, 10, "Carbon 输出 10");
+eq(resolveModel("gemini-4-carbon")?.model.off.cacheRead, 0.1, "Carbon 缓存命中 0.1");
+is(resolveModel("gemini-4-carbon")?.vendor.currency, "USD", "Carbon 计美元");
+
+const carbon = resolveModel("gemini-4-carbon");
+eq(priceSample(carbon, false, { uncachedInputTokens: 1e6, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 1e6 }).amount, 12, "Carbon 输入+输出各100万 = $12");
+
+// Decision 1：只计输入，输出恒为 0（官方：每题生成 0 个输出 token）
+is(resolveModel("gemini-decision-1")?.model.id, "gemini-decision-1", "gemini-decision-1 可识别");
+eq(resolveModel("gemini-decision-1")?.model.off.input, 0.1, "Decision 1 输入 0.1");
+eq(resolveModel("gemini-decision-1")?.model.off.output, 0, "Decision 1 输出价 0");
+const decision = resolveModel("gemini-decision-1");
+eq(priceSample(decision, false, { uncachedInputTokens: 1e6, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 1e6 }).amount, 0.1, "Decision 1 输入100万+输出100万 只计 $0.1");
+
+// ---------- 12. 通义：折扣价与无按量计费的预览版 ----------
+console.log("[12] 通义 qwen3.7-plus 折扣价与 qwen4");
+const q37 = resolveModel("qwen3.7-plus");
+eq(q37?.model.off.input, 1.6, "qwen3.7-plus 用实付价 1.6（不是原价 2）");
+eq(q37?.model.off.output, 6.4, "qwen3.7-plus 实付输出 6.4（不是原价 8）");
+eq(priceSample(q37, false, { uncachedInputTokens: 100000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 100000 }).amount, 0.8, "10万+10万 = ¥0.8");
+eq(priceSample(q37, false, { uncachedInputTokens: 300000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 300000 }).amount, 7.2, ">256K 档 30万+30万 = ¥7.2");
+
+// qwen4-max-preview 只支持 Token Plan 订阅、无按量计费单价 → 不纳入价目表
+is(resolveModel("qwen4-max-preview"), null, "qwen4-max-preview 无按量价，不纳入");
+is(resolveModel("qwen4-preview"), null, "qwen4-preview 不存在（官方 404）");
+is(resolveModel("qwen4"), null, "qwen4 不存在");
+
 console.log("");
 console.log("通过 " + pass + " 项，失败 " + fail + " 项");
 process.exit(fail === 0 ? 0 : 1);

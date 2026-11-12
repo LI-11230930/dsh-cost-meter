@@ -194,13 +194,13 @@ export const PRICING = {
           id: "qwen3.7-plus",
           aliases: ["qwen3.7-plus"],
           label: "Qwen3.7-Plus",
-          peak: { input: 2, output: 8, cacheRead: 0.4, cacheWrite: 2.5 },
-          off: { input: 2, output: 8, cacheRead: 0.4, cacheWrite: 2.5 },
+          peak: { input: 1.6, output: 6.4, cacheRead: 0.32, cacheWrite: 2 },
+          off: { input: 1.6, output: 6.4, cacheRead: 0.32, cacheWrite: 2 },
           tiers: [
-            { upTo: 256000, input: 2, output: 8, cacheRead: 0.4, cacheWrite: 2.5 },
-            { upTo: Infinity, input: 6, output: 24, cacheRead: 1.2, cacheWrite: 2.5 },
+            { upTo: 256000, input: 1.6, output: 6.4, cacheRead: 0.32, cacheWrite: 2 },
+            { upTo: Infinity, input: 4.8, output: 19.2, cacheRead: 0.96, cacheWrite: 2 },
           ],
-          note: "原价；当前有限时 8 折活动。",
+          note: "取实付价：官方标注「原价 2 元（限时 8 折）」「原价 8 元（限时 8 折）」，实付 1.6/6.4；256K 档原价 6/24 折后 4.8/19.2。",
         },
         {
           id: "qwen3.6-plus",
@@ -777,12 +777,28 @@ export const PRICING = {
       note: "仅隐式缓存，无缓存写入费（缓存存储费按小时计，未计入）。多模态音频输入价高于文本，此处取文本档。",
       models: [
         {
+          id: "gemini-4-carbon",
+          aliases: ["gemini-4-carbon", "gemini-4carbon"],
+          label: "Gemini 4 Carbon",
+          peak: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 0 },
+          off: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 0 },
+          note: "⚠ 促销价，2026-12-01 起涨为 $4/$20（cacheRead $0.20）。仅隐式缓存。上下文 1M、最大输出 65K/1M。无免费额度。取 Standard 档（另有 Batch/Flex 半价、Priority 1.8 倍）。",
+        },
+        {
           id: "gemini-4-argon",
           aliases: ["gemini-4-argon"],
           label: "Gemini 4 Argon",
           peak: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 0 },
           off: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 0 },
           note: "⚠ 促销价，2026-12-01 起涨为 $4/$20（cacheRead $0.20）。无上下文分档。",
+        },
+        {
+          id: "gemini-decision-1",
+          aliases: ["gemini-decision-1", "gemini-decision", "decision-1"],
+          label: "Gemini Decision 1",
+          peak: { input: 0.1, output: 0, cacheRead: 0, cacheWrite: 0 },
+          off: { input: 0.1, output: 0, cacheRead: 0, cacheWrite: 0 },
+          note: "多模态决策模型（Decisions API）。输出价为 0：官方明确每题生成 0 个输出 token，只按共享输入计费。不支持缓存、不支持 Batch。",
         },
         {
           id: "gemini-3.8-flash",
