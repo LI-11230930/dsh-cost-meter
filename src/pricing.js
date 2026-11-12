@@ -44,7 +44,7 @@ export const CURRENCY_SYMBOL = { CNY: "¥", USD: "$" };
  */
 export const PRICING = {
   version: 1,
-  updatedAt: "2026-11-09",
+  updatedAt: "2026-11-12",
   unit: "per 1M tokens",
   vendors: [
     // ==================== 国内（人民币 CNY）====================
