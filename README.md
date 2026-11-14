@@ -30,7 +30,7 @@
 
 ## 安装
 
-> 要求：DSH 0.2.x（内核 `0.2.0-rc.2` / `0.2.1-rc.5` 已验证）
+> 要求：Node.js ≥ 24.9，DSH `>=0.2.0 <0.3.0`（内核 `0.2.2-rc.3` 已验证）
 
 ```bash
 # 在你的 DSH profile 目录下（例如 ~/.dsh/profiles/desktop）
@@ -208,11 +208,27 @@ node test/pricing.test.mjs
 
 ## 兼容性
 
+兼容性由 `package.json` 的 `engines.dsh` 声明；DSH 会**优先**按它判定，命中后不再看 `peerDependencies`。
+
 | DSH 内核 | 状态 |
 |---|---|
-| 0.2.0-rc.2 | ✅ 已验证 |
-| 0.2.1-rc.2 | ✅ 已验证 |
+| 0.2.2-rc.3 | ✅ 已验证（当前） |
 | 0.2.1-rc.5 | ✅ 已验证 |
+| 0.2.1-rc.2 | ✅ 已验证 |
+| 0.2.0-rc.2 | ✅ 已验证 |
+
+### 适配 DSH 0.2.2 的改动（0.2.1）
+
+- 新增 `engines.dsh: ">=0.2.0 <0.3.0"`，并把 `engines.node` 提到 `>=24.9.0`
+  （DSH 0.2.1-rc.2 起要求 Node 24）
+- 移除早已不是独立包的 `@deepseek-ai/dsh-client-ui-slots` 与
+  `@deepseek-ai/dsh-client-ui-primitives`：
+  peers 与 `dsh.client.inject` 里都不再声明，`dsh.client.inject` 改为
+  实际存在的 `dsh-client-ui-conversation`、`dsh-client-ui-chat`
+- 图标按新导出名取值：`IconSparkleRegular` → `IconSparkle` →
+  `IconDatabaseOutlineRegular` → 空 span，四级回退，任一版本缺图标都不会
+  让状态栏 pill 崩溃
+- 这些契约都写进了测试（第 `[13]` 组），以后改 manifest 或图标会立刻报警
 
 ## 已知限制
 

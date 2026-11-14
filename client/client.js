@@ -233,9 +233,18 @@ window.__ModuleLoader__.load({
       return { data, failed, stale: false };
     }
 
-    const I = primitives;
-    /** 计量图标：Sparkle 缺失时退回 Database，再退回空 span（防御未来改名）。 */
-    const CostIcon = I.IconSparkle ?? I.IconDatabaseOutlineRegular ?? function Fallback(props) { return react.createElement("span", props); };
+    const I = primitives || {};
+    /**
+     * 计量图标。DSH 各版本的图标导出名不同，逐个回退，最后退到空 span：
+     *   0.2.2-rc.3 起：IconSparkleRegular（primitives 内）
+     *   更早版本：IconSparkle
+     * 兜底：IconDatabaseOutlineRegular
+     * 全部缺失时用空 span，绝不让图标缺失把整个 pill 弄崩。
+     */
+    const CostIcon = I.IconSparkleRegular
+      ?? I.IconSparkle
+      ?? I.IconDatabaseOutlineRegular
+      ?? function Fallback(props) { return react.createElement("span", props); };
 
     function Panel(props) {
       const { data, sessionId, t, onClose } = props;

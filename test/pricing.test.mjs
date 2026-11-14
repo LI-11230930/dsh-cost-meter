@@ -11,8 +11,60 @@
  *
  * 运行：node test/pricing.test.mjs
  */
+import { readFileSync } from "node:fs";
 import { PRICING, priceSample, resolveModel, isIgnoredModel } from "../src/pricing.js";
 import { foldEvent, emptyEntry } from "../src/index.js";
+
+/**
+ * 最小 semver 范围判断，只覆盖本仓库用到的写法：
+ *   ">=0.2.0 <0.3.0"  空格分隔多个约束，全部满足才算满足
+ *   ">=0.2.0-rc"      允许预发布比较
+ *   "*" / ">=0.0.0"   恒真
+ * 为什么自己写：测试用 node 直跑，不引入 semver 依赖。
+ */
+function semverSatisfies(version, range) {
+  const parse = (v) => {
+    const m = String(v).trim().match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
+    if (m === null) return null;
+    return { nums: [+m[1], +m[2], +m[3]], pre: m[4] ?? "" };
+  };
+  const cmp = (a, b) => {
+    for (let i = 0; i < 3; i += 1) if (a.nums[i] !== b.nums[i]) return a.nums[i] < b.nums[i] ? -1 : 1;
+    // 同核心版本：有预发布标识的更低（0.2.2-rc.3 < 0.2.2）
+    if (a.pre === b.pre) return 0;
+    if (a.pre === "") return 1;
+    if (b.pre === "") return -1;
+    return a.pre < b.pre ? -1 : 1;
+  };
+  const v = parse(version);
+  if (v === null) return false;
+  const r = String(range).trim();
+  if (r === "" || r === "*") return true;
+  // 空格分隔：">=0.2.0 <0.3.0"。先按空格切，再合并形如 ">= 0.2.0" 的项。
+  const parts = r.split(/\s+/).filter(Boolean);
+  const tokens = [];
+  for (let i = 0; i < parts.length; i += 1) {
+    if (/^(>=|<=|>|<|=|\^|~)$/.test(parts[i]) && i + 1 < parts.length) {
+      tokens.push(parts[i] + parts[i + 1]);
+      i += 1;
+    } else tokens.push(parts[i]);
+  }
+  for (const tok of tokens) {
+    const m = tok.match(/^(\^|~|>=|<=|>|<|=)?(.+)$/);
+    if (m === null) return false;
+    const op = m[1] ?? "=";
+    const bound = parse(m[2]);
+    if (bound === null) return false;
+    if (op === ">=" && !(cmp(v, bound) >= 0)) return false;
+    if (op === "<=" && !(cmp(v, bound) <= 0)) return false;
+    if (op === ">" && !(cmp(v, bound) > 0)) return false;
+    if (op === "<" && !(cmp(v, bound) < 0)) return false;
+    if (op === "=" && cmp(v, bound) !== 0) return false;
+    if (op === "^" && !(cmp(v, bound) >= 0 && v.nums[0] === bound.nums[0])) return false;
+    if (op === "~" && !(cmp(v, bound) >= 0 && v.nums[0] === bound.nums[0] && v.nums[1] === bound.nums[1])) return false;
+  }
+  return true;
+}
 
 let pass = 0, fail = 0;
 const EPS = 1e-9;
@@ -232,6 +284,32 @@ eq(priceSample(q37, false, { uncachedInputTokens: 300000, cacheReadTokens: 0, ca
 is(resolveModel("qwen4-max-preview"), null, "qwen4-max-preview 无按量价，不纳入");
 is(resolveModel("qwen4-preview"), null, "qwen4-preview 不存在（官方 404）");
 is(resolveModel("qwen4"), null, "qwen4 不存在");
+
+// ---------- 13. DSH 0.2.2 兼容性（manifest 静态契约）----------
+// 这些是「装得上、起得来」的硬条件，退化后 DSH 会直接拒绝安装或在页面上崩掉，
+// 所以用测试锁住，避免以后改 package.json / client.js 时无声破坏。
+console.log("[13] DSH 0.2.2 兼容性");
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+
+is(typeof pkg.engines?.dsh, "string", "manifest 必须声明 engines.dsh（DSH 优先按它判定兼容性）");
+// 0.2.2-rc.3 是当前运行版本；范围要覆盖它，同时不错误地宣称支持 0.3 以后的未知版本。
+const dshRange = semverSatisfies("0.2.2-rc.3", pkg.engines.dsh);
+is(dshRange, true, "engines.dsh 必须覆盖当前 0.2.2-rc.3");
+is(semverSatisfies("0.2.0", pkg.engines.dsh), true, "engines.dsh 应覆盖 0.2.0（本插件最低实测版本）");
+is(semverSatisfies("0.3.0", pkg.engines.dsh), false, "engines.dsh 不应宣称支持 0.3.0");
+
+// 这两个包在 0.2.2-rc.3 中已不是可解析的独立包，继续声明会让兼容性判定与解析混乱。
+for (const name of ["@deepseek-ai/dsh-client-ui-slots", "@deepseek-ai/dsh-client-ui-primitives"]) {
+  is(Object.hasOwn(pkg.peerDependencies ?? {}, name), false, "peerDependencies 不应再声明 " + name);
+  is((pkg.dsh?.client?.inject ?? []).includes(name), false, "dsh.client.inject 不应再声明 " + name);
+}
+
+// 图标必须按 0.2.2 的导出名取，且保留回退，避免任一版本缺失就把整个 pill 弄崩。
+const clientSrc = readFileSync(new URL("../client/client.js", import.meta.url), "utf8");
+is(/IconSparkleRegular/.test(clientSrc), true, "client 必须优先使用 IconSparkleRegular（0.2.2 起的新名）");
+is(/IconSparkle\b/.test(clientSrc), true, "client 需保留 IconSparkle 回退（兼容旧版）");
+is(/IconDatabaseOutlineRegular/.test(clientSrc), true, "client 需保留 IconDatabaseOutlineRegular 兜底");
+is(/primitives\s*\|\|\s*\{\}/.test(clientSrc), true, "client 需对 primitives 缺失做防御");
 
 console.log("");
 console.log("通过 " + pass + " 项，失败 " + fail + " 项");

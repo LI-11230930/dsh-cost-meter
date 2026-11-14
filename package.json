@@ -1,7 +1,7 @@
 {
   "name": "dsh-cost-meter",
-  "version": "0.2.0",
-  "description": "实时花费计量：在 DeepSeek Harness 对话框下方状态栏的「Token 用量」与「上下文」之间显示本次会话花费，内置 12 家厂商价目表，逐样本按真实模型计费（支持同会话切换模型分别计价），国内计人民币、国外计美元。",
+  "version": "0.2.1",
+  "description": "实时花费计量：在 DeepSeek Harness 对话框下方状态栏的「Token 用量」与「上下文」之间显示本次会话花费，内置 13 家厂商价目表，逐样本按真实模型计费（支持同会话切换模型分别计价），国内计人民币、国外计美元。",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -38,8 +38,7 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-slots",
-        "@deepseek-ai/dsh-client-ui-primitives"
+        "@deepseek-ai/dsh-client-ui-chat"
       ],
       "platform": "web"
     }
@@ -47,13 +46,12 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0-rc <5",
     "@deepseek-ai/dsh-client-ui-conversation": ">=0.0.1-rc <2",
-    "@deepseek-ai/dsh-client-ui-primitives": ">=0.0.1-rc <2",
-    "@deepseek-ai/dsh-client-ui-slots": ">=0.0.1-rc <2",
     "react": ">=18",
     "react-dom": ">=18"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.9.0",
+    "dsh": ">=0.2.0 <0.3.0"
   },
   "license": "MIT"
 }
