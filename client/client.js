@@ -235,15 +235,20 @@ window.__ModuleLoader__.load({
 
     const I = primitives || {};
     /**
-     * 计量图标。DSH 各版本的图标导出名不同，逐个回退，最后退到空 span：
-     *   0.2.2-rc.3 起：IconSparkleRegular（primitives 内）
-     *   更早版本：IconSparkle
-     * 兜底：IconDatabaseOutlineRegular
-     * 全部缺失时用空 span，绝不让图标缺失把整个 pill 弄崩。
+     * 计量图标：电池（数据库）图标。
+     *
+     * 为什么不用 sparkle：官方「Token 用量」pill 自己就用 sparkle，
+     * 这个花费 pill 紧贴在它左边，两个 sparkle 并排会看起来是重复的同一个图标。
+     * 电池图标与它区分开，且语义上更贴近「耗电 = 花钱」。
+     *
+     * 逐个回退，最后退到空 span，绝不让图标缺失把整个 pill 弄崩：
+     *   IconDatabaseOutlineRegular（各版本都在）
+     *   IconSparkleRegular（0.2.2 起 sparkle 的新名，仅作后备）
+     *   IconSparkle（更早版本的 sparkle 名）
      */
-    const CostIcon = I.IconSparkleRegular
+    const CostIcon = I.IconDatabaseOutlineRegular
+      ?? I.IconSparkleRegular
       ?? I.IconSparkle
-      ?? I.IconDatabaseOutlineRegular
       ?? function Fallback(props) { return react.createElement("span", props); };
 
     function Panel(props) {

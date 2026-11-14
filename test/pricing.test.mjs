@@ -304,12 +304,18 @@ for (const name of ["@deepseek-ai/dsh-client-ui-slots", "@deepseek-ai/dsh-client
   is((pkg.dsh?.client?.inject ?? []).includes(name), false, "dsh.client.inject 不应再声明 " + name);
 }
 
-// 图标必须按 0.2.2 的导出名取，且保留回退，避免任一版本缺失就把整个 pill 弄崩。
+// 图标：保持电池（数据库）图标优先，避免与相邻的官方 token pill 的 sparkle 重复；
+// 同时保留回退链，任一版本缺图标都不会把整个 pill 弄崩。
 const clientSrc = readFileSync(new URL("../client/client.js", import.meta.url), "utf8");
-is(/IconSparkleRegular/.test(clientSrc), true, "client 必须优先使用 IconSparkleRegular（0.2.2 起的新名）");
-is(/IconSparkle\b/.test(clientSrc), true, "client 需保留 IconSparkle 回退（兼容旧版）");
-is(/IconDatabaseOutlineRegular/.test(clientSrc), true, "client 需保留 IconDatabaseOutlineRegular 兜底");
-is(/primitives\s*\|\|\s*\{\}/.test(clientSrc), true, "client 需对 primitives 缺失做防御");
+const iconExpr = clientSrc.match(/const CostIcon =([\s\S]*?);/)?.[1] ?? "";
+is(/IconDatabaseOutlineRegular/.test(iconExpr), true, "CostIcon 必须优先使用 IconDatabaseOutlineRegular（电池图标）");
+// 关键回归：sparkle 不能排在 Database 之前，否则又会出现两个 sparkle 并排的重复图标。
+is(
+  iconExpr.indexOf("IconDatabaseOutlineRegular") < iconExpr.indexOf("IconSparkle"),
+  true,
+  "电池图标必须排在 sparkle 之前（否则与官方 token pill 图标重复）",
+);
+is(/primitives\s*\|\|\s*\{\}/.test(clientSrc), true, "client 需对 primitives 缺失做防御");;
 
 console.log("");
 console.log("通过 " + pass + " 项，失败 " + fail + " 项");
